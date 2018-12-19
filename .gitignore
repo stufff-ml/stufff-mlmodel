@@ -1,3 +1,11 @@
+# IDE files
+.vscode
+stufff-env
+
+# Google Cloud Stuff
+gcloud_key.json
+census/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

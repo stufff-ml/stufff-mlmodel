@@ -13,6 +13,7 @@ pip install -r requirements.txt
 
 ### Reference
 
+* https://cloud.google.com/solutions/machine-learning/recommendation-system-tensorflow-overview
 * https://github.com/GoogleCloudPlatform/tensorflow-recommendation-wals
 
 * https://cloud.google.com/ml-engine/docs/tensorflow/getting-started-training-prediction

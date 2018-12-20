@@ -1,9 +1,19 @@
 # stufff-mlmodel
-Models for the Stufff Machine Learning Engine
+Default model for the Stufff Machine Learning Engine
 
-GOOGLE_APPLICATION_CREDENTIALS=gcloud_key.json
+GOOGLE_APPLICATION_CREDENTIALS=service_account.json
+
+pip install -U pip
+pip install --user --upgrade virtualenv
+
+virtualenv stufff-env
+source stufff-env/bin/activate
+
+pip install -r requirements.txt
 
 ### Reference
+
+* https://github.com/GoogleCloudPlatform/tensorflow-recommendation-wals
 
 * https://cloud.google.com/ml-engine/docs/tensorflow/getting-started-training-prediction
 * https://cloud.google.com/ml-engine/docs/tensorflow/training-overview 

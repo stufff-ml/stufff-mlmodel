@@ -14,6 +14,8 @@ import tensorflow as tf
 import metadata
 import model
 import wals
+import util
+import recommendations as rec
 
 def main():
 
@@ -39,7 +41,7 @@ def main():
     header_types = {'entity_id':np.int32, 'target_entity_id':np.int32, 'timestamp':np.int32 }
     data = pd.read_csv(BytesIO(content), names=headers, header=None, dtype=header_types)
 
-    entity_map, target_entity_map, training_sparse, test_sparse = model.create_test_and_train_sets(data, PARAMS.test_percentage)
+    entity_map, target_entity_map, training_sparse, test_sparse = model.create_data_sets(data, PARAMS.test_percentage)
 
     print('')
     print(" --> Build the model")
@@ -47,8 +49,13 @@ def main():
 
     output_row, output_col = model.train_model(model.DEFAULT_HYPERPARAMS, training_sparse)
 
-    # save trained model to job directory
-    model.save_model(PARAMS.model_id, PARAMS.model_rev, PARAMS.job_dir, entity_map, target_entity_map, output_row, output_col)
+    print('')
+    print(" --> Save the model")
+    print('')
+
+    util.save_model(PARAMS.model_id, PARAMS.model_rev, PARAMS.job_dir, entity_map, target_entity_map, output_row, output_col)
+    recs = rec.batch_recommendation(data, output_row, output_col, PARAMS.predict_batch_size)
+    util.save_recommendations(PARAMS.model_id, PARAMS.model_rev, PARAMS.job_dir, recs)
 
     train_rmse = wals.get_rmse(output_row, output_col, training_sparse)
     test_rmse = wals.get_rmse(output_row, output_col, test_sparse)

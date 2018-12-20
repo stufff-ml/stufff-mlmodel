@@ -22,7 +22,7 @@ DEFAULT_HYPERPARAMS = {
     'feature_wt_exp': 0.08
 }
 
-def create_test_and_train_sets(data, test_percentage):
+def create_data_sets(data, test_percentage):
     """Create test and train sets, for different input data types.
     Args:
         data: dataframe with all data
@@ -68,12 +68,12 @@ def create_test_and_train_sets(data, test_percentage):
         ratings[:, 0] -= 1
         ratings[:, 1] -= 1
         
-    tr_sparse, test_sparse = create_sparse_train_and_test(ratings, n_entity, n_target_entity, test_percentage)
+    tr_sparse, test_sparse = create_sparse_data_sets(ratings, n_entity, n_target_entity, test_percentage)
 
     return ratings[:, 0], ratings[:, 1], tr_sparse, test_sparse
     
 
-def create_sparse_train_and_test(ratings, n_entity, n_target_entity, test_percentage):
+def create_sparse_data_sets(ratings, n_entity, n_target_entity, test_percentage):
   """Given ratings, create sparse matrices for train and test sets.
   Args:
     ratings:    list of ratings tuples  (u, i, r)
@@ -102,26 +102,26 @@ def create_sparse_train_and_test(ratings, n_entity, n_target_entity, test_percen
   return tr_sparse, test_sparse
 
 
-def train_model(args, tr_sparse):
+def train_model(hyperparams, tr_sparse):
   """Instantiate WALS model and use "simple_train" to factorize the matrix.
-  Args:
-    args: training args containing hyperparams
+  hyperparams:
+    hyperparams: training args containing hyperparams
     tr_sparse: sparse training matrix
   Returns:
      the row and column factors in numpy format.
   """
-  dim = args['latent_factors']
-  num_iters = args['num_iters']
-  reg = args['regularization']
-  unobs = args['unobs_weight']
-  wt_type = args['wt_type']
-  feature_wt_exp = args['feature_wt_exp']
-  obs_wt = args['feature_wt_factor']
+  dim = hyperparams['latent_factors']
+  num_iters = hyperparams['num_iters']
+  reg = hyperparams['regularization']
+  unobs = hyperparams['unobs_weight']
+  wt_type = hyperparams['wt_type']
+  feature_wt_exp = hyperparams['feature_wt_exp']
+  obs_wt = hyperparams['feature_wt_factor']
 
   tf.logging.info('Train Start: {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()))
 
   # generate model
-  input_tensor, row_factor, col_factor, model = wals.wals_model(tr_sparse,dim,reg,unobs,args['weights'],wt_type,feature_wt_exp,obs_wt)
+  input_tensor, row_factor, col_factor, model = wals.wals_model(tr_sparse,dim,reg,unobs,hyperparams['weights'],wt_type,feature_wt_exp,obs_wt)
 
   # factorize matrix
   session = wals.simple_train(model, input_tensor, num_iters)
@@ -137,72 +137,3 @@ def train_model(args, tr_sparse):
 
   return output_row, output_col
 
-
-def save_model(model_id, model_rev, output_dir, entity_map, target_entity_map, row_factor, col_factor):
-  """Save the user map, item map, row factor and column factor matrices in numpy format.
-  These matrices together constitute the "recommendation model."
-  Args:
-    entity_map:     entity map numpy array
-    target_entity_map:     target_entity map numpy array
-    row_factor:   row_factor numpy array
-    col_factor:   col_factor numpy array
-  """
-
-  model_dir = os.path.join(output_dir, 'model')
-  job_name = model_id + '_' + model_rev
-
-  # if our output directory is a GCS bucket, write model files to /tmp,
-  # then copy to GCS
-  gs_model_dir = None
-  if model_dir.startswith('gs://'):
-    gs_model_dir = model_dir
-    model_dir = '/tmp/{0}'.format(job_name)
-
-  if not os.path.isdir(model_dir):
-    os.makedirs(model_dir)
-
-  np.save(os.path.join(model_dir, 'entity'), entity_map)
-  np.save(os.path.join(model_dir, 'target_entity'), target_entity_map)
-  np.save(os.path.join(model_dir, 'row'), row_factor)
-  np.save(os.path.join(model_dir, 'col'), col_factor)
-
-  if gs_model_dir:
-    sh.gsutil('cp', '-r', os.path.join(model_dir, '*'), gs_model_dir)
-
-
-def generate_recommendations(entity_index, target_entity_rated, row_factor, col_factor, k):
-  """Generate recommendations for a user.
-  Args:
-    entity_index: the row index of the user in the ratings matrix,
-    target_entity_rated: the list of item indexes (column indexes in the ratings matrix)
-      previously rated by that user (which will be excluded from the
-      recommendations),
-    row_factor: the row factors of the recommendation model
-    col_factor: the column factors of the recommendation model
-    k: number of recommendations requested
-  Returns:
-    list of k item indexes with the predicted highest rating,
-    excluding those that the user has already rated
-  """
-
-  # bounds checking for args
-  assert (row_factor.shape[0] - len(target_entity_rated)) >= k
-
-  # retrieve entity factor
-  entity_f = row_factor[entity_index]
-
-  # dot product of item factors with user factor gives predicted ratings
-  pred_ratings = col_factor.dot(entity_f)
-
-  # find candidate recommended item indexes sorted by predicted rating
-  k_r = k + len(target_entity_rated)
-  candidate_items = np.argsort(pred_ratings)[-k_r:]
-
-  # remove previously rated items and take top k
-  recommended_items = [i for i in candidate_items if i not in target_entity_rated]
-  recommended_items = recommended_items[-k:]
-
-  # flip to sort highest rated first
-  recommended_items.reverse()
-
-  return recommended_items

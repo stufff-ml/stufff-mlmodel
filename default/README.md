@@ -27,7 +27,7 @@ JOB_ID=$(date +%s)
 JOB_NAME=`echo $MODEL_ID.$MODEL_REV | tr . _`
 OUTPUT_PATH=gs://$BUCKET_NAME/$MODEL_ID/"$JOB_NAME"_"$JOB_ID"
 
-gcloud ml-engine local train --job-dir $OUTPUT_PATH --module-name trainer.task --package-path trainer/ -- --model-id foo1233.default --model-rev 2
+gcloud ml-engine local train --job-dir $OUTPUT_PATH --module-name model.task --package-path model/ -- --model-id $MODEL_ID --model-rev $MODEL_REV
 
 ````
 
@@ -39,6 +39,6 @@ JOB_ID=$(date +%s)
 JOB_NAME=`echo $MODEL_ID.$MODEL_REV | tr . _`
 OUTPUT_PATH=gs://$BUCKET_NAME/$MODEL_ID/"$JOB_NAME"_"$JOB_ID"
 
-gcloud ml-engine jobs submit training "$JOB_NAME"_"$JOB_ID" --job-dir $OUTPUT_PATH --module-name trainer.task --package-path trainer/ --region $REGION -- --model-id foo1233.default --model-rev 2
+gcloud ml-engine jobs submit training "$JOB_NAME"_"$JOB_ID" --job-dir $OUTPUT_PATH --module-name model.task --package-path model/ --region $REGION -- --model-id $MODEL_ID --model-rev $MODEL_REV
 
 ````

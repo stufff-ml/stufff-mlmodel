@@ -4,16 +4,7 @@ import argparse
 import wals
 
 def initialise_params(args_parser):
-    """
-    Define the arguments with the default values,
-    parses the arguments passed to the task,
-    and set the PARAMS global variable
 
-    Args:
-        args_parser
-    """
-
-    # model adnd data selection
     args_parser.add_argument(
         '--model-id',
         help='ID of the model to be trained',
@@ -81,7 +72,6 @@ def initialise_params(args_parser):
         help='Location used for all tmp data',
         required=True
     )
-
     args_parser.add_argument(
         '--source-bucket',
         help='Bucket where training data is expected',
@@ -89,7 +79,7 @@ def initialise_params(args_parser):
     )
     args_parser.add_argument(
         '--model-bucket',
-        help='Bucket where models will be uploaded to',
+        help='Bucket where model data will be exported to',
         default='models.stufff.review'
     )
 

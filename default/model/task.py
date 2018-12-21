@@ -15,7 +15,7 @@ import metadata
 import model
 import wals
 import util
-import recommendations as rec
+import prediction as pre
 
 def main():
 
@@ -50,12 +50,17 @@ def main():
     output_row, output_col = model.train_model(model.DEFAULT_HYPERPARAMS, training_sparse)
 
     print('')
+    print(" --> Batch predictions")
+    print('')
+
+    predictions = pre.batch_predictions(data, output_row, output_col, PARAMS.predict_batch_size)
+
+    print('')
     print(" --> Save the model")
     print('')
 
-    util.save_model(PARAMS.model_id, PARAMS.model_rev, PARAMS.job_dir, entity_map, target_entity_map, output_row, output_col)
-    recs = rec.batch_recommendation(data, output_row, output_col, PARAMS.predict_batch_size)
-    util.save_recommendations(PARAMS.model_id, PARAMS.model_rev, PARAMS.job_dir, recs)
+    util.export_model(PARAMS.model_id, PARAMS.model_rev, PARAMS.job_dir, entity_map, target_entity_map, output_row, output_col)
+    util.export_predictions(PARAMS.model_id, PARAMS.model_rev, PARAMS.job_dir, predictions)
 
     train_rmse = wals.get_rmse(output_row, output_col, training_sparse)
     test_rmse = wals.get_rmse(output_row, output_col, test_sparse)

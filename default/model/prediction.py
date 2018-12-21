@@ -4,21 +4,8 @@ import pandas as pd
 import numpy as np
 
 
-def single_recommendation(entity_index, exclude, row_factor, col_factor, k):
-  """Generate recommendations for a user.
-  Args:
-    entity_index: the row index of the user in the ratings matrix,
-    exclude: the list of item indexes (column indexes in the ratings matrix)
-      previously rated by that user (which will be excluded from the
-      recommendations),
-    row_factor: the row factors of the recommendation model
-    col_factor: the column factors of the recommendation model
-    k: number of recommendations requested
-  Returns:
-    list of k item indexes with the predicted highest rating,
-    excluding those that the user has already rated
-  """
-
+def single_prediction(entity_index, exclude, row_factor, col_factor, k):
+  
   # bounds checking for args
   assert (row_factor.shape[0] - len(exclude)) >= k
 
@@ -42,7 +29,7 @@ def single_recommendation(entity_index, exclude, row_factor, col_factor, k):
   return recommended_items
 
 
-def batch_recommendation(data, row_factor, col_factor, k):
+def batch_predictions(data, row_factor, col_factor, k):
 
   unique_entity = np.unique(data.entity_id.values)
   unique_target_entity= np.unique(data.target_entity_id.values)
@@ -56,7 +43,7 @@ def batch_recommendation(data, row_factor, col_factor, k):
     already_rated_idx = [np.searchsorted(unique_target_entity, i)
                           for i in already_rated]
 
-    recs_idx = single_recommendation(item_idx, already_rated_idx, row_factor, col_factor, k)
+    recs_idx = single_prediction(item_idx, already_rated_idx, row_factor, col_factor, k)
     recs = [unique_target_entity[i] for i in recs_idx]
 
     recommended_items.loc[id] = recs

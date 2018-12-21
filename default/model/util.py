@@ -5,21 +5,12 @@ import os
 import sh
 
 
-def save_model(model_id, model_rev, output_dir, entity_map, target_entity_map, row_factor, col_factor):
-  """Save the user map, item map, row factor and column factor matrices in numpy format.
-  These matrices together constitute the "recommendation model."
-  Args:
-    entity_map:     entity map numpy array
-    target_entity_map:     target_entity map numpy array
-    row_factor:   row_factor numpy array
-    col_factor:   col_factor numpy array
-  """
-
-  model_dir = os.path.join(output_dir, 'model')
+def export_model(model_id, model_rev, export_location, entity_map, target_entity_map, row_factor, col_factor):
+  
+  #model_dir = os.path.join(export_location, 'model')
+  model_dir = export_location
   job_name = model_id + '_' + model_rev
 
-  # if our output directory is a GCS bucket, write model files to /tmp,
-  # then copy to GCS
   gs_model_dir = None
   if model_dir.startswith('gs://'):
     gs_model_dir = model_dir
@@ -37,12 +28,12 @@ def save_model(model_id, model_rev, output_dir, entity_map, target_entity_map, r
     sh.gsutil('cp', '-r', os.path.join(model_dir, '*'), gs_model_dir)
 
 
-def save_recommendations(model_id, model_rev, output_dir, recs):
-  model_dir = os.path.join(output_dir, 'model')
+def export_predictions(model_id, model_rev, export_location, recs):
+
+  #model_dir = os.path.join(export_location, 'model')
+  model_dir = export_location
   job_name = model_id + '_' + model_rev
 
-  # if our output directory is a GCS bucket, write model files to /tmp,
-  # then copy to GCS
   gs_model_dir = None
   if model_dir.startswith('gs://'):
     gs_model_dir = model_dir

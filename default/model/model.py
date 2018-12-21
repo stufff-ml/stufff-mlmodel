@@ -23,19 +23,7 @@ DEFAULT_HYPERPARAMS = {
 }
 
 def create_data_sets(data, test_percentage):
-    """Create test and train sets, for different input data types.
-    Args:
-        data: dataframe with all data
-
-    Returns:
-        array of entity IDs
-        array of target entity IDs
-        sparse coo_matrix for training
-        sparse coo_matrix for test
-    Raises:
-        ValueError: if invalid data_type is supplied
-    """
-
+    
     entity = data.entity_id.values
     unique_entity = np.unique(entity)
 
@@ -74,15 +62,7 @@ def create_data_sets(data, test_percentage):
     
 
 def create_sparse_data_sets(ratings, n_entity, n_target_entity, test_percentage):
-  """Given ratings, create sparse matrices for train and test sets.
-  Args:
-    ratings:    list of ratings tuples  (u, i, r)
-    n_entity:   number of entities
-    n_target_entity:  number of target items
-    test_percentage: percentage of data used to test the model
-  Returns:
-     train, test sparse matrices in scipy coo_matrix format.
-  """
+  
   # pick a random test set of entries, sorted ascending
   test_set_size = int(len(ratings) * test_percentage)
   test_set_idx = np.random.choice(xrange(len(ratings)), size=test_set_size, replace=False)
@@ -103,13 +83,7 @@ def create_sparse_data_sets(ratings, n_entity, n_target_entity, test_percentage)
 
 
 def train_model(hyperparams, tr_sparse):
-  """Instantiate WALS model and use "simple_train" to factorize the matrix.
-  hyperparams:
-    hyperparams: training args containing hyperparams
-    tr_sparse: sparse training matrix
-  Returns:
-     the row and column factors in numpy format.
-  """
+  
   dim = hyperparams['latent_factors']
   num_iters = hyperparams['num_iters']
   reg = hyperparams['regularization']

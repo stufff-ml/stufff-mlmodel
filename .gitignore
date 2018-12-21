@@ -3,6 +3,7 @@
 stufff-env
 service_account.json
 data/*
+stuff.md
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

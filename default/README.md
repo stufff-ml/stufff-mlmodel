@@ -16,6 +16,7 @@ BUCKET_NAME=models.stufff.review
 
 MODEL_ID=foo1233.default
 MODEL_REV=2
+MODEL_PACKAGE=default-1
 
 ````
 
@@ -39,6 +40,19 @@ JOB_ID=$(date +%s)
 JOB_NAME=`echo $MODEL_ID.$MODEL_REV | tr . _`
 OUTPUT_PATH=gs://$BUCKET_NAME/$MODEL_ID/"$JOB_NAME"_"$JOB_ID"
 
-gcloud ml-engine jobs submit training "$JOB_NAME"_"$JOB_ID" --job-dir $OUTPUT_PATH --module-name model.task --package-path model/ --region $REGION -- --model-id $MODEL_ID --model-rev $MODEL_REV
+gcloud ml-engine jobs submit training "$JOB_NAME"_"$JOB_ID" --job-dir $OUTPUT_PATH --module-name model.task --package-path model/ --region $REGION --runtime-version 1.12 --python-version 2.7 -- --model-id $MODEL_ID --model-rev $MODEL_REV
+
+````
+
+#### With shared package
+
+```shell
+
+JOB_ID=$(date +%s)
+JOB_NAME=`echo $MODEL_ID.$MODEL_REV | tr . _`
+OUTPUT_PATH=gs://$BUCKET_NAME/$MODEL_ID/"$JOB_NAME"_"$JOB_ID"
+PACKAGE_PATH=gs://"$BUCKET_NAME/packages/$MODEL_PACKAGE/$MODEL_PACKAGE".tar.gz
+
+gcloud ml-engine jobs submit training "$JOB_NAME"_"$JOB_ID" --packages $PACKAGE_PATH --job-dir $OUTPUT_PATH --module-name model.task --package-path model/ --region $REGION --runtime-version 1.12 --python-version 2.7 -- --model-id $MODEL_ID --model-rev $MODEL_REV
 
 ````

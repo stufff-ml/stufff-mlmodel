@@ -2,7 +2,7 @@
 ## Run locally
 
 ```shell
-python test.py --job-dir ../../data --model-id foo1233.default --model-rev 2
+python task.py --job-dir ../../data --model-id foo1233.default --model-rev 2
 ````
 
 ## Train with Google ML Engine

@@ -31,3 +31,6 @@ credentials = ServiceAccountCredentials.from_json_keyfile_dict(
 client = storage.Client(credentials=credentials, project='myproject')
 
 
+google-api-python-client
+oauth2client
+googleappengine

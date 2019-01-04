@@ -25,7 +25,7 @@ def main():
     print(PARAMS)
     print('')
 
-    source_name = PARAMS.model_id + '/' + PARAMS.model_id + '.' + PARAMS.model_rev + '.csv'
+    source_name = PARAMS.client_id + '/' + PARAMS.model_name + '.csv'
     client = storage.Client()
     source_bucket = client.get_bucket(PARAMS.source_bucket)
 
@@ -47,8 +47,8 @@ def main():
     predictions = pre.batch_predictions(data, output_row, output_col, PARAMS.predict_batch_size)
 
     # save the model data and predictions
-    util.export_model(PARAMS.model_id, PARAMS.model_rev, PARAMS.job_dir, entity_map, target_entity_map, output_row, output_col)
-    util.export_predictions(PARAMS.model_id, PARAMS.model_rev, PARAMS.job_dir, predictions)
+    util.export_model(PARAMS.job_id, PARAMS.job_dir, entity_map, target_entity_map, output_row, output_col)
+    util.export_predictions(PARAMS.job_id, PARAMS.job_dir, predictions)
 
     # calculate the training accuracy
     train_rmse = wals.get_rmse(output_row, output_col, training_sparse)
@@ -69,15 +69,21 @@ def main():
 def initialise(args_parser):
 
     args_parser.add_argument(
-        '--model-id',
-        help='ID of the model to be trained',
+        '--client-id',
+        help='ID of the client resource',
         required=True
     )
     args_parser.add_argument(
-        '--model-rev',
-        help='Revision of the model to be trained',
+        '--model-name',
+        help='Name of the model',
         required=True
     )
+    args_parser.add_argument(
+        '--job-id',
+        help='ID of this job instance',
+        required=True
+    )
+    
     args_parser.add_argument(
         '--predict-batch-size',
         help='Batch size for each prediction',
@@ -132,7 +138,7 @@ def initialise(args_parser):
     # other setup
     args_parser.add_argument(
         '--job-dir',
-        help='Location used for all tmp data',
+        help='Location used for exports and temp data',
         required=True
     )
     args_parser.add_argument(

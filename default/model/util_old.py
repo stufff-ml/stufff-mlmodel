@@ -5,14 +5,16 @@ import os
 import sh
 
 
-def export_model(job_id, export_location, entity_map, target_entity_map, row_factor, col_factor):
+def export_model_old(model_id, model_rev, export_location, entity_map, target_entity_map, row_factor, col_factor):
   
+  #model_dir = os.path.join(export_location, 'model')
   model_dir = export_location
-  
+  job_name = model_id + '_' + model_rev
+
   gs_model_dir = None
   if model_dir.startswith('gs://'):
     gs_model_dir = model_dir
-    model_dir = '/tmp/{0}'.format(job_id)
+    model_dir = '/tmp/{0}'.format(job_name)
 
   if not os.path.isdir(model_dir):
     os.makedirs(model_dir)
@@ -26,14 +28,16 @@ def export_model(job_id, export_location, entity_map, target_entity_map, row_fac
     sh.gsutil('cp', '-r', os.path.join(model_dir, '*'), gs_model_dir)
 
 
-def export_predictions(job_id, export_location, recs):
+def export_predictions_old(model_id, model_rev, export_location, recs):
 
+  #model_dir = os.path.join(export_location, 'model')
   model_dir = export_location
-  
+  job_name = model_id + '_' + model_rev
+
   gs_model_dir = None
   if model_dir.startswith('gs://'):
     gs_model_dir = model_dir
-    model_dir = '/tmp/{0}'.format(job_id)
+    model_dir = '/tmp/{0}'.format(job_name)
 
   if not os.path.isdir(model_dir):
     os.makedirs(model_dir)

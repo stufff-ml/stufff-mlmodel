@@ -13,10 +13,7 @@ import datetime
 import sh
 
 def train(params):
-    print(" --> PARAMS")
-    print(params)
-    print('')
-
+    
     client = storage.Client()
 
     # Load the training data
@@ -66,10 +63,8 @@ def train(params):
     # calculate the training accuracy
     train_rmse = wals.get_rmse(output_row, output_col, training_sparse)
     test_rmse = wals.get_rmse(output_row, output_col, test_sparse)
-    print(' --> Training RMSE = %.2f' % train_rmse)
-    print(' --> Test RMSE = %.2f' % test_rmse)
 
-
+    return train_rmse, test_rmse
 
 
 

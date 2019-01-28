@@ -115,8 +115,15 @@ if __name__ == '__main__':
     status = 'ok'
     time_start = datetime.utcnow()
     
+    print(" --> PARAMS")
+    print(args)
+    print('')
+
     try:
-        model.train(args)
+        train_rmse, test_rmse = model.train(args)
+
+        print(' --> Training RMSE = %.2f' % train_rmse)
+        print(' --> Test RMSE = %.2f' % test_rmse)
     except:
         status = 'error'
    

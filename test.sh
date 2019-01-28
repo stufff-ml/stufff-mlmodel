@@ -39,5 +39,5 @@ function get_data() {
   gsutil -m cp $DATA_FILE $DATA_DIR
 }
 
-get_data $1
+#get_data $1
 train $1

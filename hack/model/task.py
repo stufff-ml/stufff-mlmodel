@@ -43,7 +43,7 @@ def main():
     # train the model
     output_row, output_col = model.train_model(model.DEFAULT_HYPERPARAMS, training_sparse)
 
-    # atch predictions for all entity IDs
+    # batch predictions for all entity IDs
     predictions = pre.batch_predictions(data, output_row, output_col, PARAMS.predict_batch_size)
 
     # save the model data and predictions

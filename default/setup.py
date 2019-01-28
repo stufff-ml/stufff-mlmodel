@@ -9,5 +9,8 @@ setup(
     install_requires=REQUIRED_PACKAGES,
     packages=find_packages(),
     include_package_data=True,
+    maintainer='stufff.review',
+    maintainer_email='hello@ratchet.cc',
+    license='GPL',
     description='The basic ML model to predict items based on past purchases.'
 )

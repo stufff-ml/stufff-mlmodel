@@ -1,33 +1,72 @@
 #!/usr/bin/env python
 
 import argparse
-import model
+import urllib2
 from datetime import datetime
+import model
 
-PARAMS = model.initialise( argparse.ArgumentParser())
 
-def main():
+def setup(parser):
+    
+    # job specific setup parameters
+    
+    parser.add_argument(
+        '--job-id',
+        help='ID of this instance',
+        required=True
+    )
+    parser.add_argument(
+        '--client-id',
+        help='ID of the client resource',
+        required=True
+    )
+    parser.add_argument(
+        '--model-name',
+        help='Name of the model',
+        required=True
+    )
+    parser.add_argument(
+        '--job-dir',
+        help='Location used for exports and temp data',
+        required=True
+    )
+    parser.add_argument(
+        '--callback',
+        help='Callback URL',
+        default='http://localhost:8080'
+    )
 
-    # Run the train and evaluate experiment
-    time_start = datetime.utcnow()
-    print('')
-    print(" --> Training started at {}".format(time_start.strftime("%H:%M:%S")))
-    print('')
-    print(PARAMS)
-    print('')
+    # generic setup parameters
+    
+    parser.add_argument(
+        '--source-bucket',
+        help='Bucket where training data is expected',
+        default='models.stufff.review'
+    )
+    parser.add_argument(
+        '--model-bucket',
+        help='Bucket where model data will be exported to',
+        default='models.stufff.review'
+    )
 
-    # do some real stuff ...
-    model.train(PARAMS)
-
-    # Done.
-    time_end = datetime.utcnow()
-    time_elapsed = time_end - time_start
-
-    print('')
-    print(" --> Training finished at {}".format(time_end.strftime("%H:%M:%S")))
-    print(" --> Training elapsed time: {} seconds".format(time_elapsed.total_seconds()))
-    print('')
+    return parser.parse_args()
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    args = setup( parser)
+
+    status = 'ok'
+    time_start = datetime.utcnow()
+
+    try:
+        model.train(args)
+    except:
+        status = 'error'
+    
+    time_end = datetime.utcnow()
+    time_elapsed = time_end - time_start
+
+    # notify the engine
+    urllib2.urlopen(args.callback + '&status=' + status + "&t={}".format(time_elapsed.total_seconds())).read()
+    

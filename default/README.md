@@ -28,7 +28,7 @@ JOB_ID=$(date +%s)
 JOB_NAME=`echo $MODEL_ID.$MODEL_REV | tr . _`
 OUTPUT_PATH=gs://$BUCKET_NAME/$MODEL_ID/"$JOB_NAME"_"$JOB_ID"
 
-gcloud ml-engine local train --job-dir $OUTPUT_PATH --module-name model.task --package-path model/ -- --model-id $MODEL_ID --model-rev $MODEL_REV
+gcloud ml-engine local train --job-dir $OUTPUT_PATH --module-name model.train --package-path model/ -- --model-id $MODEL_ID --model-rev $MODEL_REV
 
 ````
 

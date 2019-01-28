@@ -17,3 +17,15 @@ Default models for the Stufff Machine Learning Engine
 * https://ai.googleblog.com/2016/06/wide-deep-learning-better-together-with.html 
 * https://towardsdatascience.com/how-to-train-machine-learning-models-in-the-cloud-using-cloud-ml-engine-3f0d935294b3 
 * https://hackernoon.com/tensorrec-a-recommendation-engine-framework-in-tensorflow-d85e4f0874e8 
+
+Datasets
+
+Brazilian E-Commerce Public Dataset by Olist
+https://www.kaggle.com/olistbr/brazilian-ecommerce#olist_order_items_dataset.csv
+
+Online Retail Data Set from UCI ML repo
+https://www.kaggle.com/jihyeseo/online-retail-data-set-from-uci-ml-repo
+
+Retailrocket recommender system dataset
+https://www.kaggle.com/retailrocket/ecommerce-dataset#events.csv
+

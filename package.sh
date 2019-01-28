@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-BUCKET_NAME="models.stufff.review"
+BUCKET_NAME="resources.stufff.review"
 
 source stufff-env/bin/activate
 

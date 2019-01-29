@@ -4,6 +4,7 @@ stufff-env
 service_account.json
 data/*
 stuff.md
+.DS_Store
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

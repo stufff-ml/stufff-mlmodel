@@ -1,16 +1,18 @@
 
 import argparse
 import os
+import sh
 from io import BytesIO
 from google.cloud import storage
 import pandas as pd
 import numpy as np
 import tensorflow as tf
 from scipy.sparse import coo_matrix
+import datetime
+
 import wals
 import prediction as pre
-import datetime
-import sh
+
 
 def train(params):
     

@@ -8,7 +8,6 @@ DATA_DIR="data"
 
 REGION=europe-west1
 MODEL_NAME=default
-PACKAGE=default-1
 
 function train() {
 
@@ -33,11 +32,13 @@ function train() {
 }
 
 function get_data() {
-  CLIENT_ID=$1
-  DATA_FILE="gs://$DATA_BUCKET/$CLIENT_ID/buy.csv"
+  EVENT=$1
+  CLIENT_ID=$2
+
+  DATA_FILE="gs://$DATA_BUCKET/$CLIENT_ID/$EVENT.csv"
 
   gsutil -m cp $DATA_FILE $DATA_DIR
 }
 
-#get_data $1
-train $1
+get_data $1 $2
+#train $2

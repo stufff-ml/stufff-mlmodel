@@ -2,16 +2,22 @@
 import argparse
 import os
 import sh
-from io import BytesIO
-from google.cloud import storage
 import pandas as pd
 import numpy as np
-import tensorflow as tf
-from scipy.sparse import coo_matrix
-import datetime
+from io import BytesIO
+from google.cloud import storage
 
-import wals
-import prediction as pre
+import surprise
+from surprise import Dataset
+from surprise import Reader
+from surprise import SVD, SVDpp
+from surprise.model_selection import GridSearchCV
+
+
+MAX_RATING=1.0
+PRECISION=5
+FILTER_THRESHOLD=0.6
+MAX_PREDICTION=50
 
 
 def train(params):
@@ -26,145 +32,80 @@ def train(params):
 
     headers = ['event','entity_type','entity_id','target_entity_type','target_entity_id','timestamp','properties']
     header_types = {'entity_id':np.int32, 'target_entity_id':np.int32, 'timestamp':np.int32 }
-    data = pd.read_csv(BytesIO(content), names=headers, header=None, dtype=header_types)
+    raw_df = pd.read_csv(BytesIO(content), names=headers, header=None, dtype=header_types)
 
-    # create training and test sets
-    entity_map, target_entity_map, training_sparse, test_sparse = create_data_sets(data, params.test_percentage)
+    # create the dataframe
+    df = pd.DataFrame(data={'entity_id': raw_df['entity_id'], 'target_entity_id': raw_df['target_entity_id']})
+    df['rating'] = MAX_RATING
 
-    # generate model
-    tf.logging.info('Train Start: {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()))
+    # create the training data
+    reader = Reader(rating_scale=(0, MAX_RATING))
+    data = Dataset.load_from_df(df[['entity_id', 'target_entity_id', 'rating']], reader)
+    training_data = data.build_full_trainset()
 
-    input_tensor, row_factor, col_factor, model = wals.wals_model(training_sparse,
-      params.latent_factors,
-      params.regularization,
-      params.unobs_weight,
-      params.weights,
-      params.wt_type,
-      params.feature_wt_exp,
-      params.feature_wt_factor)
+    # Find optimal parameters
+    print(' --> fitting the model')
 
-    # factorize matrix
-    session = wals.simple_train(model, input_tensor, params.num_iters)
+    param_grid = {'n_epochs': [10, 30], 'lr_all': [0.002, 0.005], 'reg_all': [0.2, 0.6]}
+    gs = GridSearchCV(SVDpp, param_grid, measures=['rmse', 'mae'], cv=3)
+    gs.fit(data)
 
-    # evaluate output factor matrices
-    output_row = row_factor.eval(session=session)
-    output_col = col_factor.eval(session=session)
+    print(gs.best_score['rmse'])
+    print(gs.best_params['rmse'])
 
-    tf.logging.info('Train Finish: {:%Y-%m-%d %H:%M:%S}'.format(datetime.datetime.now()))
+    # Build an model, and train it
+    print(' --> build the model')
 
-    # close the training session now that we've evaluated the output
-    session.close()
-    
-    # batch predictions for all entity IDs
-    predictions = pre.batch_predictions(data, output_row, output_col, params.predict_batch_size)
+    #model = SVD()
+    model = gs.best_estimator['rmse']
+    model.fit(training_data)
 
-    # save the model data and predictions
-    export_model(params.job_id, params.job_dir, entity_map, target_entity_map, output_row, output_col)
-    export_predictions(params.job_id, params.job_dir, predictions)
+    # Batch predictions
+    print(' --> batch predictions')
 
-    # calculate the training accuracy
-    train_rmse = wals.get_rmse(output_row, output_col, training_sparse)
-    test_rmse = wals.get_rmse(output_row, output_col, test_sparse)
+    unique_entity = np.unique(df.entity_id.values)
+    unique_target_entity= np.unique(df.target_entity_id.values)
 
-    return train_rmse, test_rmse
+    px = pd.DataFrame(-1.0, index=unique_entity, columns=unique_target_entity,dtype=np.float64)
+    predx = training_data.build_anti_testset(fill=0)
+
+    for p in predx:
+      pred = model.predict(training_data.to_inner_uid(p[0]), training_data.to_inner_iid(p[1]))
+      px.at[p[0], p[1]] = round(pred.est, PRECISION)
+
+    # create the export
+    print(' --> create export')
+    ex = pd.DataFrame(index=unique_entity, columns={'n','values'})
+
+    for id in unique_entity:
+      p1 = px.loc[ id , : ]
+      p2 = p1.sort_values(ascending=False)
+      p3a = p2[p2 > FILTER_THRESHOLD]
+      p3 = p3a[p3a < 1.0].head(MAX_PREDICTION)
+      t = zip(p3.index.tolist(), p3.values)
+      tf = [item for sublist in t for item in sublist]
+
+      ex.at[id, 'n'] = len(tf) / 2
+      ex.at[id, 'values'] = tf
+
+    export_df(params.job_id, 'pred_user.csv', params.job_dir, ex)
 
 
+def export_df(job_id, f, export_location, recs):
 
-def create_data_sets(data, test_percentage):
-    
-    entity = data.entity_id.values
-    unique_entity = np.unique(entity)
-
-    target_entity = data.target_entity_id.values
-    unique_target_entity= np.unique(target_entity)
-
-    n_entity = unique_entity.shape[0]
-    n_target_entity = unique_target_entity.shape[0]
-
-    max_entity = unique_entity[-1]
-    max_target_entity = unique_target_entity[-1]
-
-    ratings = data.as_matrix(['entity_id', 'target_entity_id','properties'])
-    ratings[:, 2] = 1.0
-    
-    if n_entity != max_entity or n_target_entity != max_target_entity:
-        z = np.zeros(max_entity+1, dtype=int)
-        z[unique_entity] = np.arange(n_entity)
-        u_r = z[entity]
-
-        z = np.zeros(max_target_entity+1, dtype=int)
-        z[unique_target_entity] = np.arange(n_target_entity)
-        i_r = z[target_entity]
-
-        # construct the ratings set from the two stacks
-        ratings[:, 0] = u_r
-        ratings[:, 1] = i_r
-    else:
-        # deal with 1-based user indices
-        ratings[:, 0] -= 1
-        ratings[:, 1] -= 1
-        
-    tr_sparse, test_sparse = create_sparse_data_sets(ratings, n_entity, n_target_entity, test_percentage)
-
-    return ratings[:, 0], ratings[:, 1], tr_sparse, test_sparse
-    
-
-def create_sparse_data_sets(ratings, n_entity, n_target_entity, test_percentage):
+  local_dir = export_location
   
-  # pick a random test set of entries, sorted ascending
-  test_set_size = int(len(ratings) * test_percentage)
-  test_set_idx = np.random.choice(xrange(len(ratings)), size=test_set_size, replace=False)
-  test_set_idx = sorted(test_set_idx)
+  remote_dir = None
+  if export_location.startswith('gs://'):
+    remote_dir = export_location
+    local_dir = '/tmp/{0}'.format(job_id)
 
-  # sift ratings into train and test sets
-  ts_ratings = ratings[test_set_idx]
-  tr_ratings = np.delete(ratings, test_set_idx, axis=0)
+  if not os.path.isdir(local_dir):
+    os.makedirs(local_dir)
 
-  # create training and test matrices as coo_matrix's
-  u_tr, i_tr, r_tr = zip(*tr_ratings)
-  tr_sparse = coo_matrix((r_tr, (u_tr, i_tr)), shape=(n_entity, n_target_entity))
+  export_file = os.path.join(local_dir, f)
+  recs.to_csv(export_file, header=True, index_label='id', encoding='utf-8')
 
-  u_ts, i_ts, r_ts = zip(*ts_ratings)
-  test_sparse = coo_matrix((r_ts, (u_ts, i_ts)), shape=(n_entity, n_target_entity))
-
-  return tr_sparse, test_sparse
-
-
-def export_model(job_id, export_location, entity_map, target_entity_map, row_factor, col_factor):
-  
-  model_dir = export_location
-  
-  gs_model_dir = None
-  if model_dir.startswith('gs://'):
-    gs_model_dir = model_dir
-    model_dir = '/tmp/{0}'.format(job_id)
-
-  if not os.path.isdir(model_dir):
-    os.makedirs(model_dir)
-
-  np.save(os.path.join(model_dir, 'entity'), entity_map)
-  np.save(os.path.join(model_dir, 'target_entity'), target_entity_map)
-  np.save(os.path.join(model_dir, 'row'), row_factor)
-  np.save(os.path.join(model_dir, 'col'), col_factor)
-
-  if gs_model_dir:
-    sh.gsutil('cp', '-r', os.path.join(model_dir, '*'), gs_model_dir)
-
-
-def export_predictions(job_id, export_location, recs):
-
-  model_dir = export_location
-  
-  gs_model_dir = None
-  if model_dir.startswith('gs://'):
-    gs_model_dir = model_dir
-    model_dir = '/tmp/{0}'.format(job_id)
-
-  if not os.path.isdir(model_dir):
-    os.makedirs(model_dir)
-
-  recs.to_csv(os.path.join(model_dir, 'recs.csv'),header=False,encoding='utf-8')
-
-  if gs_model_dir:
-    sh.gsutil('cp', '-r', os.path.join(model_dir, 'recs.csv'), gs_model_dir)
+  if remote_dir:
+    sh.gsutil('cp', '-r', export_file, os.path.join(remote_dir, f))
 

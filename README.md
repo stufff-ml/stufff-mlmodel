@@ -29,3 +29,12 @@ https://www.kaggle.com/jihyeseo/online-retail-data-set-from-uci-ml-repo
 Retailrocket recommender system dataset
 https://www.kaggle.com/retailrocket/ecommerce-dataset#events.csv
 
+## Development
+
+pip install -U pip
+pip install --user --upgrade virtualenv
+
+virtualenv stufff-env
+source stufff-env/bin/activate
+
+pip install -r requirements.txt

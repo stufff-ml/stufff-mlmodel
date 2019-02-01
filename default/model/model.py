@@ -1,16 +1,11 @@
-
 import argparse
-import os
-import sh
 import pandas as pd
 import numpy as np
 from io import BytesIO
 from google.cloud import storage
+from util import read_dataframe, write_dataframe
 
-import surprise
-from surprise import Dataset
-from surprise import Reader
-from surprise import SVD, SVDpp
+from surprise import Dataset, Reader, SVD, SVDpp
 from surprise.model_selection import GridSearchCV
 
 
@@ -75,7 +70,7 @@ def train(params):
 
     # create the export
     print(' --> create export')
-    ex = pd.DataFrame(index=unique_entity, columns={'n','values'})
+    ex = pd.DataFrame(index=unique_entity, columns={'entity_type','target_entity_type','values'})
 
     for id in unique_entity:
       p1 = px.loc[ id , : ]
@@ -85,27 +80,9 @@ def train(params):
       t = zip(p3.index.tolist(), p3.values)
       tf = [item for sublist in t for item in sublist]
 
-      ex.at[id, 'n'] = len(tf) / 2
+      ex.at[id, 'entity_type'] = 'user'
+      ex.at[id, 'target_entity_type'] = 'item'
       ex.at[id, 'values'] = tf
 
-    export_df(params.job_id, 'pred_user.csv', params.job_dir, ex)
-
-
-def export_df(job_id, f, export_location, recs):
-
-  local_dir = export_location
-  
-  remote_dir = None
-  if export_location.startswith('gs://'):
-    remote_dir = export_location
-    local_dir = '/tmp/{0}'.format(job_id)
-
-  if not os.path.isdir(local_dir):
-    os.makedirs(local_dir)
-
-  export_file = os.path.join(local_dir, f)
-  recs.to_csv(export_file, header=True, index_label='id', encoding='utf-8')
-
-  if remote_dir:
-    sh.gsutil('cp', '-r', export_file, os.path.join(remote_dir, f))
+    upload_dataframe(params.job_id, 'pred_user.csv', params.job_dir, ['entity_type','target_entity_type','values'], 'entity_id', ex)
 

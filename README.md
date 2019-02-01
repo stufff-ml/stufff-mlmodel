@@ -38,3 +38,21 @@ virtualenv stufff-env
 source stufff-env/bin/activate
 
 pip install -r requirements.txt
+
+
+## Format
+
+### Import
+
+```csv
+event,entity_type,entity_id,target_entity_type,target_entity_id,timestamp,properties
+buy,user,121688,item,15335,1548705546,''
+buy,user,599528,item,356475,1548705546,''
+```
+
+### Export
+
+```csv
+entity_id,entity_type,target_entity_type,values
+1,user,item,"[99, 0.99982, 24, 0.99659, 8, 0.98458]"
+```

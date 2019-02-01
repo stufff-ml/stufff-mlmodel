@@ -3,11 +3,7 @@ import pandas as pd
 import numpy as np
 from scipy.sparse import coo_matrix
 
-import surprise
-
-from surprise import Dataset
-from surprise import Reader
-from surprise import SVD, SVDpp
+from surprise import Dataset, Reader, SVD, SVDpp
 from surprise.model_selection import GridSearchCV
 
 
@@ -66,7 +62,7 @@ for p in predx:
 print(px)
 
 # create the export
-ex = pd.DataFrame(index=unique_entity, columns={'n','values'})
+ex = pd.DataFrame(index=unique_entity, columns={'entity_type','target_entity_type','values'})
 
 for id in unique_entity:
   p1 = px.loc[ id , : ]
@@ -76,15 +72,9 @@ for id in unique_entity:
   t = zip(p3.index.tolist(), p3.values)
   tf = [item for sublist in t for item in sublist]
 
-  ex.at[id, 'n'] = len(tf) / 2
+  ex.at[id, 'entity_type'] = 'user'
+  ex.at[id, 'target_entity_type'] = 'item'
   ex.at[id, 'values'] = tf
   
 print(ex)
-ex.to_csv('../data/recs.csv',header=True, index_label='id', encoding='utf-8')
-
-
-#print(ppp)
-#print(ppp[ppp > FILTER_THRESHOLD])
-
-#print(ppp.index)
-#print(ppp.values)
+ex.to_csv('../data/recs.csv',header=True, columns=['entity_type','target_entity_type','values'], index_label='entity_id', encoding='utf-8')

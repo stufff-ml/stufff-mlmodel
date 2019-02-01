@@ -1,8 +1,7 @@
 import argparse
 import pandas as pd
 import numpy as np
-from io import BytesIO
-from google.cloud import storage
+
 from util import read_dataframe, write_dataframe
 
 from surprise import Dataset, Reader, SVD, SVDpp
@@ -17,25 +16,14 @@ MAX_PREDICTION=50
 
 def train(params):
     
-    client = storage.Client()
+    # Load the training data and create a df for training
+    temp_df = read_dataframe(params.client_id, params.source_bucket, 'buy.csv')
+    raw_df = pd.DataFrame(data={'entity_id': temp_df['entity_id'], 'target_entity_id': temp_df['target_entity_id']})
+    raw_df['rating'] = MAX_RATING
 
-    # Load the training data
-    source_name = params.client_id + '/buy.csv'
-    source_bucket = client.get_bucket(params.source_bucket)
-    source_blob = source_bucket.get_blob(source_name)
-    content = source_blob.download_as_string()
-
-    headers = ['event','entity_type','entity_id','target_entity_type','target_entity_id','timestamp','properties']
-    header_types = {'entity_id':np.int32, 'target_entity_id':np.int32, 'timestamp':np.int32 }
-    raw_df = pd.read_csv(BytesIO(content), names=headers, header=None, dtype=header_types)
-
-    # create the dataframe
-    df = pd.DataFrame(data={'entity_id': raw_df['entity_id'], 'target_entity_id': raw_df['target_entity_id']})
-    df['rating'] = MAX_RATING
-
-    # create the training data
+    # create the training set
     reader = Reader(rating_scale=(0, MAX_RATING))
-    data = Dataset.load_from_df(df[['entity_id', 'target_entity_id', 'rating']], reader)
+    data = Dataset.load_from_df(raw_df[['entity_id', 'target_entity_id', 'rating']], reader)
     training_data = data.build_full_trainset()
 
     # Find optimal parameters
@@ -58,8 +46,8 @@ def train(params):
     # Batch predictions
     print(' --> batch predictions')
 
-    unique_entity = np.unique(df.entity_id.values)
-    unique_target_entity= np.unique(df.target_entity_id.values)
+    unique_entity = np.unique(raw_df.entity_id.values)
+    unique_target_entity= np.unique(raw_df.target_entity_id.values)
 
     px = pd.DataFrame(-1.0, index=unique_entity, columns=unique_target_entity,dtype=np.float64)
     predx = training_data.build_anti_testset(fill=0)
@@ -84,5 +72,4 @@ def train(params):
       ex.at[id, 'target_entity_type'] = 'item'
       ex.at[id, 'values'] = tf
 
-    upload_dataframe(params.job_id, 'pred_user.csv', params.job_dir, ['entity_type','target_entity_type','values'], 'entity_id', ex)
-
+    write_dataframe(params.job_id, params.job_dir, 'pred_user.csv', ['entity_type','target_entity_type','values'], 'entity_id', ex)
